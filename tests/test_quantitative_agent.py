@@ -80,13 +80,13 @@ def test_answer_blocks_disallowed_sql_without_executing_it(conn):
 
 def test_answer_returns_error_for_sql_against_a_nonexistent_table(conn):
     with patch(
-        "src.agents.quantitative_agent.generate_sql", return_value="SELECT COUNT(*) FROM employees"
+        "src.agents.quantitative_agent.generate_sql", return_value="SELECT COUNT(*) FROM widgets"
     ):
-        result = quantitative_agent.answer("how many employees do we have?", conn=conn)
+        result = quantitative_agent.answer("how many widgets do we have?", conn=conn)
 
     assert result["rows"] == []
     assert result["error"] is not None
-    assert "employees" in result["error"]
+    assert "widgets" in result["error"]
 
 
 def test_generate_sql_returns_no_data_sentinel_when_model_says_so():
