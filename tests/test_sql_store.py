@@ -62,3 +62,44 @@ def test_count_active_subscriptions_by_plan(conn):
         {"plan": "Enterprise", "count": 4},
         {"plan": "Pro", "count": 4},
     ]
+
+
+def test_revenue_by_month_seeds_a_full_year_of_regions(conn):
+    rows = sql_store.run_query(conn, "SELECT COUNT(*) AS count FROM revenue_by_month")
+    assert rows[0]["count"] == 36
+
+
+def test_q4_2025_revenue_by_region(conn):
+    rows = sql_store.run_query(
+        conn,
+        """
+        SELECT region, SUM(revenue) AS total
+        FROM revenue_by_month
+        WHERE month IN ('2025-10', '2025-11', '2025-12')
+        GROUP BY region
+        ORDER BY region
+        """,
+    )
+    assert rows == [
+        {"region": "APAC", "total": pytest.approx(10550.00)},
+        {"region": "EMEA", "total": pytest.approx(10850.00)},
+        {"region": "NA", "total": pytest.approx(18650.00)},
+    ]
+
+
+def test_employees_seeded_with_satisfaction_scores(conn):
+    rows = sql_store.run_query(conn, "SELECT COUNT(*) AS count, AVG(satisfaction_score) AS avg_score FROM employees")
+    assert rows[0]["count"] == 10
+    assert rows[0]["avg_score"] == pytest.approx(7.16)
+
+
+def test_code_review_tickets_meeting_the_48_hour_sla(conn):
+    rows = sql_store.run_query(
+        conn, "SELECT COUNT(*) AS count FROM code_review_tickets WHERE turnaround_hours <= 48"
+    )
+    assert rows[0]["count"] == 10
+
+
+def test_expense_requests_requiring_manager_signoff(conn):
+    rows = sql_store.run_query(conn, "SELECT COUNT(*) AS count FROM expense_requests WHERE amount >= 500")
+    assert rows[0]["count"] == 8
