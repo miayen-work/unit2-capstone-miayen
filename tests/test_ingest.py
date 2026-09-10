@@ -32,5 +32,9 @@ def test_reads_real_project_documents():
         "vacation_policy",
         "security_policy",
         "support_sla",
+        "code_review_policy",
+        "customer_complaints_policy",
+        "expense_policy",
+        "employee_satisfaction_benchmark",
     }
     assert all(doc["text"].strip() for doc in docs)
