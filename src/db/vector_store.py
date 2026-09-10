@@ -21,7 +21,9 @@ def get_collection(
 
 
 def add_documents(collection, documents: list[str], ids: list[str], metadatas: list[dict] | None = None) -> None:
-    collection.add(documents=documents, ids=ids, metadatas=metadatas)
+    # upsert (not add) so re-ingesting the same doc ids - e.g. re-running setup after
+    # editing a doc - overwrites instead of raising on duplicate ids
+    collection.upsert(documents=documents, ids=ids, metadatas=metadatas)
 
 
 def query_collection(collection, query: str, n_results: int = 5) -> list[dict]:
