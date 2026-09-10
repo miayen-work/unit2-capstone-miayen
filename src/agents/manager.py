@@ -2,6 +2,9 @@ import json
 
 from src.agents import qualitative_agent, quantitative_agent
 from src.llm import gemini_client
+from src.utils import tokenomics
+
+AGENT_NAME = "manager"
 
 VALID_QUERY_TYPES = {"qualitative", "quantitative", "complex"}
 
@@ -19,6 +22,7 @@ Question: {query}
 def classify_query(query: str) -> str:
     prompt = CLASSIFICATION_PROMPT.format(query=query)
     response = gemini_client.generate(prompt)
+    tokenomics.log_usage(AGENT_NAME, response["input_tokens"], response["output_tokens"])
     query_type = _parse_type(response["text"])
     if query_type not in VALID_QUERY_TYPES:
         raise ValueError(f"Unrecognized query type returned by classifier: {query_type!r}")
