@@ -4,4 +4,5 @@ __pycache__/
 .venv/
 venv/
 data/database/*.db
+data/database/chroma/
 .pytest_cache/
