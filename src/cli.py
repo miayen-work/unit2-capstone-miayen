@@ -34,7 +34,11 @@ def run(input_fn=input, print_fn=print) -> None:
             continue
         if query.lower() in EXIT_COMMANDS:
             break
-        result = manager.handle_query(query)
+        try:
+            result = manager.handle_query(query)
+        except Exception as exc:  # noqa: BLE001 - any failure (rate limit, network, etc.) should not kill the REPL
+            print_fn(f"Something went wrong answering that: {exc}")
+            continue
         print_fn(format_result(result))
         query_count += 1
         if query_count % SUMMARY_INTERVAL == 0:

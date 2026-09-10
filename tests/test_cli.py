@@ -98,6 +98,22 @@ def test_run_accepts_quit_as_well_as_exit():
     mock_manager.handle_query.assert_not_called()
 
 
+def test_run_recovers_after_handle_query_raises_and_keeps_going():
+    inputs = iter(["first query", "second query", "exit"])
+    outputs = []
+
+    with patch("src.cli.manager") as mock_manager:
+        mock_manager.handle_query.side_effect = [
+            RuntimeError("429 RESOURCE_EXHAUSTED"),
+            {"type": "qualitative", "answer": "ok", "sources": []},
+        ]
+        cli.run(input_fn=lambda _: next(inputs), print_fn=outputs.append)
+
+    assert mock_manager.handle_query.call_count == 2
+    assert any("429 RESOURCE_EXHAUSTED" in line for line in outputs)
+    assert any("ok" in line for line in outputs)
+
+
 def test_run_prints_cost_summary_after_every_ten_queries():
     inputs = iter([f"query {i}" for i in range(10)] + ["exit"])
     outputs = []
