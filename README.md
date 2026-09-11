@@ -130,6 +130,8 @@ model behavior end-to-end.
   gracefully by the CLI - it prints an error and keeps running rather than crashing.
 
 
+## Known limitations
+
 - **Qualitative retrieval over a small corpus**: with only 10 documents, the top-3
   semantic search used earlier in development sometimes missed the right document for
   oddly-phrased or compound questions (e.g. a code-review question phrased heavily
