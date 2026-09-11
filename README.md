@@ -59,7 +59,8 @@ datasets are self-authored, describing a fictional SaaS company, "Cloudly":
 **Documents** (`data/documents/`, ingested into Chroma) - company policies:
 - `refund_policy.md`, `onboarding.md`, `vacation_policy.md`, `security_policy.md`,
   `support_sla.md`, `code_review_policy.md`, `customer_complaints_policy.md`,
-  `expense_policy.md`, `employee_satisfaction_benchmark.md`
+  `expense_policy.md`, `employee_satisfaction_benchmark.md`,
+  `customer_success_strategies.md`
 
 **Tables** (`data/database/schema.sql`, loaded into SQLite):
 - `customers(id, name, company, region, signup_date)`
@@ -99,6 +100,7 @@ model behavior end-to-end.
 ## Sample queries
 
 **Confirmed working end-to-end against the real Gemini API:**
+
 - "What is our refund policy?" (qualitative) - correct answer, cited exactly
   `refund_policy.md` as the source.
 - "How many active subscriptions do we have?" (quantitative) - correctly generated
@@ -110,10 +112,33 @@ model behavior end-to-end.
   quantitative agent's prompt.
 - A complex refund-policy + subscription-count question - correctly answered both
   halves and combined them into one response.
+- **"What's our policy on expense approvals, and how many expense requests last
+  quarter would have required manager sign-off under that policy?"** (harder query,
+  deliberate keyword red herring) - correctly classified as complex despite being
+  phrased around "policy"; qualitative half cited `expense_policy.md` and explained
+  the $500/$5,000 thresholds; quantitative half correctly resolved "last quarter" to
+  2026-04-01 through 2026-06-30 (relative to the real run date) and found exactly 3
+  qualifying requests, matching the seed data precisely.
+- **"Analyze our sales performance and recommend policy changes based on our
+  customer success strategies"** (complex, open-ended recommendation) - correctly
+  classified as complex; qualitative half gave three specific, document-grounded
+  recommendations (expand QBRs to Basic/Pro accounts, maintain proactive health
+  checks, resolve complaints before renewal) citing `customer_success_strategies.md`;
+  quantitative half correctly computed revenue by region ordered descending
+  (NA $64,000 > EMEA $36,200 > APAC $35,500), verified against the seed data.
 - Real API failures (rate limits, server overload) were also confirmed handled
   gracefully by the CLI - it prints an error and keeps running rather than crashing.
 
-**Implemented, unit-tested, but not yet confirmed live** (see Known Limitations below):
+**Implemented, unit-tested, but not reconfirmed live after later fixes:**
+- "Based on our documented code review process, are our current code review
+  turnaround times (from the ticketing data) meeting the standard we've committed
+  to?" - the quantitative half was confirmed correct (66.7% meeting the 48-hour SLA,
+  matching the seed data), but the qualitative half initially failed to retrieve
+  `code_review_policy.md` for this phrasing. Fixed by raising the qualitative
+  agent's retrieval count from 3 to 5 results (see Known Limitations) - not
+  re-tested live against this exact query afterward.
+
+**Implemented and unit-tested, but not yet tried live:**
 - "What is our company's security policy?"
 - "Explain the code review process"
 - "How do we handle customer complaints?"
@@ -121,30 +146,26 @@ model behavior end-to-end.
 - "Compare Q4 performance across regions"
 - "How does our employee satisfaction compare to industry standards and what policies
   might impact this?"
-- "Analyze our sales performance and recommend policy changes based on our customer
-  success strategies"
-- "Based on our documented code review process, are our current code review turnaround
-  times (from the ticketing data) meeting the standard we've committed to?"
-- "What's our policy on expense approvals, and how many expense requests last quarter
-  would have required manager sign-off under that policy?"
 
 ## Known limitations
 
 - **Free-tier API quota**: Google's Gemini free tier enforces a low daily request cap
   per model (as low as 20 requests/day was observed on `gemini-3.6-flash` during
   development). Since each query costs 2-5 real API calls (classification, SQL
-  generation/search, answer summarization), this was exhausted well before every
-  query in the "supported query types" list could be verified live. Switching to
-  `gemini-flash-lite-latest` (a separate quota bucket) was attempted as a workaround
-  but was also rate-limited on retry. All query-handling code paths are implemented
-  and covered by unit tests with a mocked LLM (see `tests/`), but full live
-  verification of every listed query was not completed due to this external
-  platform constraint.
-- **Clarifying follow-up and classification robustness are untested live**: the Manager
-  now detects when one side of a "complex" answer came back incomplete (empty sources,
-  "I don't know", or a query error) and re-queries that agent once, passing the other
-  agent's answer as extra context - and its classification prompt now explicitly warns
-  against routing on surface keywords alone (e.g. the word "policy" appearing in an
-  otherwise data-driven question). Both changes are covered by mocked unit tests
-  (`tests/test_manager.py`), but neither has been verified against a real Gemini
-  response due to the quota constraint above.
+  generation/search, answer summarization), this was exhausted before every query in
+  the "supported query types" list could be verified live in one sitting. Switched
+  the default model to `gemini-flash-lite-latest` (a separate quota bucket) partway
+  through development.
+- **Qualitative retrieval over a small corpus**: with only 10 documents, the top-3
+  semantic search used earlier in development sometimes missed the right document for
+  oddly-phrased or compound questions (e.g. a code-review question phrased heavily
+  around "ticketing data" and "turnaround times" initially failed to retrieve
+  `code_review_policy.md`). Raised the qualitative agent's default retrieval count to
+  5 results to reduce this risk; not exhaustively re-verified across every query.
+- **Qualitative agent originally refused to give recommendations**: its answer prompt
+  was initially strict "answer only from literal facts in context," which caused it
+  to say "I don't know" on open-ended analysis/recommendation questions even when a
+  relevant document existed. Loosened the prompt to allow grounded synthesis for
+  analysis/recommendation questions specifically, while keeping strict fact-grounding
+  for factual questions - confirmed fixed on the customer-success-strategies query
+  above.
