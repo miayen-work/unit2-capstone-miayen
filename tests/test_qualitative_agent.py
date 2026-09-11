@@ -26,7 +26,7 @@ def test_search_creates_default_collection_when_none_given():
         qualitative_agent.search("refund question")
 
     mock_store.get_collection.assert_called_once()
-    mock_store.query_collection.assert_called_once_with(default_collection, "refund question", n_results=3)
+    mock_store.query_collection.assert_called_once_with(default_collection, "refund question", n_results=5)
 
 
 def test_answer_only_cites_sources_the_model_says_it_used():

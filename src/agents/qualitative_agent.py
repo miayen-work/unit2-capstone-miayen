@@ -7,7 +7,14 @@ from src.utils import tokenomics
 AGENT_NAME = "qualitative_agent"
 
 ANSWER_PROMPT = """Answer the question using only the context below. Each excerpt is labeled with
-its source file. If the context does not contain the answer, say you don't know.
+its source file.
+
+If the question asks for a fact, ground your answer strictly in what the context states - do
+not invent facts that aren't there. If the question asks for analysis, a recommendation, or an
+opinion, you may reason about and build on the context to answer, as long as your reasoning is
+based on what the context actually describes.
+
+Only say you don't know if the context has no information at all relevant to the question.
 
 Respond with only a JSON object of the form:
 {{"answer": "<your answer>", "sources": ["<source file>", ...]}}
@@ -21,12 +28,12 @@ Question: {question}
 """
 
 
-def search(query: str, n_results: int = 3, collection=None) -> list[dict]:
+def search(query: str, n_results: int = 5, collection=None) -> list[dict]:
     collection = collection or vector_store.get_collection()
     return vector_store.query_collection(collection, query, n_results=n_results)
 
 
-def answer(query: str, n_results: int = 3, collection=None) -> dict:
+def answer(query: str, n_results: int = 5, collection=None) -> dict:
     hits = search(query, n_results=n_results, collection=collection)
     context = "\n\n".join(
         f"[Source: {(hit.get('metadata') or {}).get('source', hit['id'])}]\n{hit['text']}" for hit in hits
