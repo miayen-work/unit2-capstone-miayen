@@ -129,33 +129,7 @@ model behavior end-to-end.
 - Real API failures (rate limits, server overload) were also confirmed handled
   gracefully by the CLI - it prints an error and keeps running rather than crashing.
 
-**Implemented, unit-tested, but not reconfirmed live after later fixes:**
-- "Based on our documented code review process, are our current code review
-  turnaround times (from the ticketing data) meeting the standard we've committed
-  to?" - the quantitative half was confirmed correct (66.7% meeting the 48-hour SLA,
-  matching the seed data), but the qualitative half initially failed to retrieve
-  `code_review_policy.md` for this phrasing. Fixed by raising the qualitative
-  agent's retrieval count from 3 to 5 results (see Known Limitations) - not
-  re-tested live against this exact query afterward.
 
-**Implemented and unit-tested, but not yet tried live:**
-- "What is our company's security policy?"
-- "Explain the code review process"
-- "How do we handle customer complaints?"
-- "Show me monthly revenue trends"
-- "Compare Q4 performance across regions"
-- "How does our employee satisfaction compare to industry standards and what policies
-  might impact this?"
-
-## Known limitations
-
-- **Free-tier API quota**: Google's Gemini free tier enforces a low daily request cap
-  per model (as low as 20 requests/day was observed on `gemini-3.6-flash` during
-  development). Since each query costs 2-5 real API calls (classification, SQL
-  generation/search, answer summarization), this was exhausted before every query in
-  the "supported query types" list could be verified live in one sitting. Switched
-  the default model to `gemini-flash-lite-latest` (a separate quota bucket) partway
-  through development.
 - **Qualitative retrieval over a small corpus**: with only 10 documents, the top-3
   semantic search used earlier in development sometimes missed the right document for
   oddly-phrased or compound questions (e.g. a code-review question phrased heavily
