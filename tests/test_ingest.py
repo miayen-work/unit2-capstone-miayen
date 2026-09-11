@@ -36,5 +36,6 @@ def test_reads_real_project_documents():
         "customer_complaints_policy",
         "expense_policy",
         "employee_satisfaction_benchmark",
+        "customer_success_strategies",
     }
     assert all(doc["text"].strip() for doc in docs)
