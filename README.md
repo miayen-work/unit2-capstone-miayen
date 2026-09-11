@@ -98,28 +98,53 @@ model behavior end-to-end.
 
 ## Sample queries
 
-**Qualitative** (semantic search over documents):
+**Confirmed working end-to-end against the real Gemini API:**
+- "What is our refund policy?" (qualitative) - correct answer, cited exactly
+  `refund_policy.md` as the source.
+- "How many active subscriptions do we have?" (quantitative) - correctly generated
+  `SELECT COUNT(*) FROM subscriptions WHERE status = 'active'`, returned 10.
+- "When did Priya sign up?" (quantitative) - correctly generated a `LIKE` query on
+  `customers.name`, answered in plain language ("February 20, 2025").
+- "What's our customer churn rate?" (quantitative) - correctly computed
+  cancelled / total subscriptions (16.67%) using the business-term mapping in the
+  quantitative agent's prompt.
+- A complex refund-policy + subscription-count question - correctly answered both
+  halves and combined them into one response.
+- Real API failures (rate limits, server overload) were also confirmed handled
+  gracefully by the CLI - it prints an error and keeps running rather than crashing.
+
+**Implemented, unit-tested, but not yet confirmed live** (see Known Limitations below):
 - "What is our company's security policy?"
 - "Explain the code review process"
 - "How do we handle customer complaints?"
-
-**Quantitative** (natural language to SQL):
-- "What's our customer churn rate?" - confirmed working: correctly computes
-  cancelled / total subscriptions (16.67%) from `subscriptions.status`.
 - "Show me monthly revenue trends"
 - "Compare Q4 performance across regions"
-
-**Complex** (both agents, combined):
 - "How does our employee satisfaction compare to industry standards and what policies
   might impact this?"
 - "Analyze our sales performance and recommend policy changes based on our customer
   success strategies"
-
-**Harder queries**:
 - "Based on our documented code review process, are our current code review turnaround
   times (from the ticketing data) meeting the standard we've committed to?"
 - "What's our policy on expense approvals, and how many expense requests last quarter
   would have required manager sign-off under that policy?"
 
-> Note: this section is being filled in as queries are verified live against the real Gemini
-> API (subject to free-tier rate limits) - not all of the above have been confirmed yet.
+## Known limitations
+
+- **Free-tier API quota**: Google's Gemini free tier enforces a low daily request cap
+  per model (as low as 20 requests/day was observed on `gemini-3.6-flash` during
+  development). Since each query costs 2-5 real API calls (classification, SQL
+  generation/search, answer summarization), this was exhausted well before every
+  query in the "supported query types" list could be verified live. Switching to
+  `gemini-flash-lite-latest` (a separate quota bucket) was attempted as a workaround
+  but was also rate-limited on retry. All query-handling code paths are implemented
+  and covered by unit tests with a mocked LLM (see `tests/`), but full live
+  verification of every listed query was not completed due to this external
+  platform constraint.
+- **Clarifying follow-up and classification robustness are untested live**: the Manager
+  now detects when one side of a "complex" answer came back incomplete (empty sources,
+  "I don't know", or a query error) and re-queries that agent once, passing the other
+  agent's answer as extra context - and its classification prompt now explicitly warns
+  against routing on surface keywords alone (e.g. the word "policy" appearing in an
+  otherwise data-driven question). Both changes are covered by mocked unit tests
+  (`tests/test_manager.py`), but neither has been verified against a real Gemini
+  response due to the quota constraint above.
