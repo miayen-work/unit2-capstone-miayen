@@ -2,7 +2,7 @@ import os
 
 from google import genai
 
-DEFAULT_MODEL = "gemini-3.6-flash"
+DEFAULT_MODEL = "gemini-flash-lite-latest"
 
 _client: genai.Client | None = None
 
